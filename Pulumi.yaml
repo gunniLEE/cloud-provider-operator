@@ -1,0 +1,19 @@
+name: pulumi-project
+description: A minimal OpenStack Go Pulumi program
+runtime: go
+config:
+  pulumi:tags:
+    value:
+      pulumi:template: openstack-go
+  openstack:authUrl:
+    value: http://192.168.34.228:25000/v3
+  openstack:userName:
+    value: admin
+  openstack:password:
+    value: cloud1234
+  openstack:region:
+    value: RegionOne
+  openstack:tenantName:
+    value: admin
+  openstack:insecure:
+    value: true
