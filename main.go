@@ -10,7 +10,13 @@ func main() {
 		// Create an OpenStack resource (Compute Instance)
 		instance, err := compute.NewInstance(ctx, "pulumi-instance", &compute.InstanceArgs{
 			FlavorName: pulumi.String("4C8G"),
-			ImageName:  pulumi.String("cirros"),
+			ImageName:  pulumi.String("ubuntu-22.04-qemu.qcow2"),
+			Networks: compute.InstanceNetworkArray{
+				&compute.InstanceNetworkArgs{
+					// 네트워크 ID를 명시적으로 지정
+					Uuid: pulumi.String("0a7e0885-9deb-45c6-bfeb-d28821d8d3d3"),
+				},
+			},
 		})
 		if err != nil {
 			return err

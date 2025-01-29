@@ -1,0 +1,11 @@
+apiVersion: infrastructure.cloudprovider.io/v1alpha1
+kind: Instance
+metadata:
+  labels:
+    app.kubernetes.io/name: operator
+    app.kubernetes.io/managed-by: kustomize
+  name: master1
+spec:
+  flavorName: "4C8G"
+  imageName: "ubuntu-22.04-qemu.qcow2"
+  networkUUID: "0a7e0885-9deb-45c6-bfeb-d28821d8d3d3"

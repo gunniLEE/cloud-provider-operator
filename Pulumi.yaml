@@ -6,7 +6,7 @@ config:
     value:
       pulumi:template: openstack-go
   openstack:authUrl:
-    value: http://192.168.34.228:25000/v3
+    value: https://172.168.30.10:15000/v3
   openstack:userName:
     value: admin
   openstack:password:
