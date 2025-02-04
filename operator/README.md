@@ -1,114 +1,63 @@
-# operator
-// TODO(user): Add simple overview of use/purpose
+# Cloud Provider Operator
 
-## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+이 프로젝트는 Kubernetes 클러스터에서 OpenStack 인스턴스를 관리하기 위한 오퍼레이터입니다. 이 오퍼레이터는 사용자 정의 리소스(CR)를 통해 OpenStack 인스턴스의 생성, 업데이트, 삭제를 자동화합니다.
 
-## Getting Started
+## 개요
 
-### Prerequisites
-- go version v1.22.0+
-- docker version 17.03+.
-- kubectl version v1.11.3+.
-- Access to a Kubernetes v1.11.3+ cluster.
+`Instance` CRD는 OpenStack 인스턴스의 스펙을 정의하며, 오퍼레이터는 이 스펙을 기반으로 인스턴스를 관리합니다. 이 오퍼레이터는 Pulumi를 사용하여 OpenStack 리소스를 프로비저닝합니다.
 
-### To Deploy on the cluster
-**Build and push your image to the location specified by `IMG`:**
+## CRD 정의
 
-```sh
-make docker-build docker-push IMG=<some-registry>/operator:tag
-```
+`Instance` CRD는 다음과 같은 필드를 포함합니다:
 
-**NOTE:** This image ought to be published in the personal registry you specified.
-And it is required to have access to pull the image from the working environment.
-Make sure you have the proper permission to the registry if the above commands don’t work.
+- **Spec**
+  - `FlavorName`: 인스턴스의 플레이버 이름
+  - `ImageName`: 인스턴스의 이미지 이름
+  - `NetworkUUID`: 인스턴스가 연결될 네트워크의 UUID
 
-**Install the CRDs into the cluster:**
+- **Status**
+  - 현재는 정의된 필드가 없으며, 향후 인스턴스의 상태를 반영할 수 있습니다.
 
-```sh
-make install
-```
+## 설치
 
-**Deploy the Manager to the cluster with the image specified by `IMG`:**
+1. Kubernetes 클러스터에 CRD를 적용합니다.
+   ```bash
+   kubectl apply -f config/crd/bases/infrastructure.cloudprovider.io_instances.yaml
+   ```
 
-```sh
-make deploy IMG=<some-registry>/operator:tag
-```
+2. 오퍼레이터를 배포합니다.
+   ```bash
+   kubectl apply -f config/deploy/operator.yaml
+   ```
 
-> **NOTE**: If you encounter RBAC errors, you may need to grant yourself cluster-admin
-privileges or be logged in as admin.
+## 사용법
 
-**Create instances of your solution**
-You can apply the samples (examples) from the config/sample:
+1. `Instance` 리소스를 생성하여 OpenStack 인스턴스를 프로비저닝합니다.
+   ```yaml
+   apiVersion: infrastructure.cloudprovider.io/v1alpha1
+   kind: Instance
+   metadata:
+     name: example-instance
+     namespace: default
+   spec:
+     flavorName: "m1.small"
+     imageName: "ubuntu-20.04"
+     networkUUID: "123e4567-e89b-12d3-a456-426614174000"
+   ```
 
-```sh
-kubectl apply -k config/samples/
-```
+2. 생성한 리소스를 적용합니다.
+   ```bash
+   kubectl apply -f instance.yaml
+   ```
 
->**NOTE**: Ensure that the samples has default values to test it out.
+3. 인스턴스의 상태를 확인합니다.
+   ```bash
+   kubectl get instances
+   ```
 
-### To Uninstall
-**Delete the instances (CRs) from the cluster:**
+## 개발
 
-```sh
-kubectl delete -k config/samples/
-```
-
-**Delete the APIs(CRDs) from the cluster:**
-
-```sh
-make uninstall
-```
-
-**UnDeploy the controller from the cluster:**
-
-```sh
-make undeploy
-```
-
-## Project Distribution
-
-Following are the steps to build the installer and distribute this project to users.
-
-1. Build the installer for the image built and published in the registry:
-
-```sh
-make build-installer IMG=<some-registry>/operator:tag
-```
-
-NOTE: The makefile target mentioned above generates an 'install.yaml'
-file in the dist directory. This file contains all the resources built
-with Kustomize, which are necessary to install this project without
-its dependencies.
-
-2. Using the installer
-
-Users can just run kubectl apply -f <URL for YAML BUNDLE> to install the project, i.e.:
-
-```sh
-kubectl apply -f https://raw.githubusercontent.com/<org>/operator/<tag or branch>/dist/install.yaml
-```
-
-## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
-
-**NOTE:** Run `make help` for more information on all potential `make` targets
-
-More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
-
-## License
-
-Copyright 2025.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
+CRD 정의를 수정한 후에는 코드를 재생성해야 합니다.
+   ```bash
+   make generate
+   ```

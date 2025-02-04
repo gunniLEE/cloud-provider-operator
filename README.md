@@ -1,1 +1,1 @@
-# cloud-provider-operator
+# Cloud Provider Operator
