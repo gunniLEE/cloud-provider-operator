@@ -19,8 +19,8 @@ import (
 
 // InstanceReconciler reconciles an Instance object
 type InstanceReconciler struct {
-	client.Client
-	Scheme *runtime.Scheme
+	client.Client                 // kubernetes API 서버와 상호작용하기 위한 클라이언트
+	Scheme        *runtime.Scheme // 컨트롤러가 사용할 스키마
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cloudprovider.io,resources=instances,verbs=get;list;watch;create;update;patch;delete
@@ -28,13 +28,49 @@ type InstanceReconciler struct {
 // +kubebuilder:rbac:groups=infrastructure.cloudprovider.io,resources=instances/finalizers,verbs=update
 
 func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	// Reconcile 메서드는 InstanceReconciler 구조체의 메서드로, context.Context와 ctrl.Request를 인자로 받음
+	// 이 메서드는 Kubernetes 컨트롤러의 핵심으로, 리소스의 상태를 감시하고 필요한 작업을 수행함
+	// 반환값은 ctrl.Result와 error임
+
+	// log 객체를 생성하여 현재의 context에서 로그를 기록할 수 있도록 함. 이는 로그 메시지를 기록하는 데 사용
 	log := log.FromContext(ctx)
 
 	// Instance 객체 가져오기
+	// Instance 객체를 위한 포인터를 생성. 이 객체는 Kubernetes API 서버에서 가져올 Instance 리소스를 저장할 것임
 	instance := &infrastructurev1alpha1.Instance{}
-	if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
-		log.Error(err, "unable to fetch Instance")
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+
+	if err := r.Get(ctx, req.NamespacedName, instance); err != nil { // r.Get 메서드를 사용하여 Instance 객체를 Kubernetes API 서버에서 가져옴
+		log.Error(err, "unable to fetch Instance")       // req.NamespacedName은 요청된 리소스의 네임스페이스와 이름을 포함
+		return ctrl.Result{}, client.IgnoreNotFound(err) // 만약 객체를 가져오는 데 실패하면 에러를 반환
+	}
+
+	// Check if the instance is marked for deletion
+	if !instance.ObjectMeta.DeletionTimestamp.IsZero() {
+		// The object is being deleted
+		if containsString(instance.ObjectMeta.Finalizers, "instance.finalizers.cloudprovider.io") {
+			// Finalizer is present, delete the OpenStack resource
+			if err := r.deleteOpenStackResource(ctx, instance); err != nil {
+				log.Error(err, "failed to delete OpenStack resource")
+				return ctrl.Result{}, err
+			}
+
+			// Remove finalizer
+			instance.ObjectMeta.Finalizers = removeString(instance.ObjectMeta.Finalizers, "instance.finalizers.cloudprovider.io")
+			if err := r.Update(ctx, instance); err != nil {
+				log.Error(err, "failed to remove finalizer from Instance")
+				return ctrl.Result{}, err
+			}
+		}
+		return ctrl.Result{}, nil
+	}
+
+	// Add finalizer if not present
+	if !containsString(instance.ObjectMeta.Finalizers, "instance.finalizers.cloudprovider.io") {
+		instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, "instance.finalizers.cloudprovider.io")
+		if err := r.Update(ctx, instance); err != nil {
+			log.Error(err, "failed to add finalizer to Instance")
+			return ctrl.Result{}, err
+		}
 	}
 
 	// Pulumi 스택 이름 설정 (Kubernetes 네임스페이스 + 인스턴스 이름)
@@ -42,7 +78,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	projectName := "cloud-provider-operator"
 
 	// Pulumi 암호 설정
-	os.Setenv("PULUMI_CONFIG_PASSPHRASE", "your-secure-passphrase")
+	os.Setenv("PULUMI_CONFIG_PASSPHRASE", "cloud1234")
 
 	// Pulumi 스택을 가져오거나 새로 생성
 	stack, err := auto.UpsertStackInlineSource(ctx, stackName, projectName, pulumiProgram(instance),
@@ -75,6 +111,33 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	return ctrl.Result{}, nil
 }
 
+// deleteOpenStackResource deletes the OpenStack resource associated with the instance
+func (r *InstanceReconciler) deleteOpenStackResource(ctx context.Context, instance *infrastructurev1alpha1.Instance) error {
+	// Pulumi 스택 이름 설정
+	stackName := fmt.Sprintf("%s-%s", instance.Namespace, instance.Name)
+	projectName := "cloud-provider-operator"
+
+	// Pulumi 스택 가져오기
+	stack, err := auto.SelectStackInlineSource(ctx, stackName, projectName, pulumiProgram(instance))
+	if err != nil {
+		return fmt.Errorf("failed to select Pulumi stack: %w", err)
+	}
+
+	// Pulumi 스택 파괴
+	_, err = stack.Destroy(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to destroy Pulumi stack: %w", err)
+	}
+
+	// 스택 삭제 (선택 사항)
+	err = stack.Workspace().RemoveStack(ctx, stackName)
+	if err != nil {
+		return fmt.Errorf("failed to remove Pulumi stack: %w", err)
+	}
+
+	return nil
+}
+
 // pulumiProgram: Pulumi에서 실행할 OpenStack 인스턴스 생성 로직
 func pulumiProgram(instance *infrastructurev1alpha1.Instance) pulumi.RunFunc {
 	return func(ctx *pulumi.Context) error {
@@ -104,4 +167,24 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&infrastructurev1alpha1.Instance{}).
 		Named("instance").
 		Complete(r)
+}
+
+// Helper functions to manage finalizers
+func containsString(slice []string, s string) bool {
+	for _, item := range slice {
+		if item == s {
+			return true
+		}
+	}
+	return false
+}
+
+func removeString(slice []string, s string) []string {
+	var result []string
+	for _, item := range slice {
+		if item != s {
+			result = append(result, item)
+		}
+	}
+	return result
 }
