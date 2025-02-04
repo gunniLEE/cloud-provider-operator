@@ -6,6 +6,12 @@
 
 `Instance` CRD는 OpenStack 인스턴스의 스펙을 정의하며, 오퍼레이터는 이 스펙을 기반으로 인스턴스를 관리합니다. 이 오퍼레이터는 Pulumi를 사용하여 OpenStack 리소스를 프로비저닝합니다.
 
+## 사전 준비
+
+- OpenStack 클라우드 환경
+- go 설치
+- kubectl 설치
+
 ## CRD 정의
 
 `Instance` CRD는 다음과 같은 필드를 포함합니다:
@@ -22,12 +28,12 @@
 
 1. Kubernetes 클러스터에 CRD를 적용합니다.
    ```bash
-   kubectl apply -f config/crd/bases/infrastructure.cloudprovider.io_instances.yaml
+   make install
    ```
 
-2. 오퍼레이터를 배포합니다.
+2. 오퍼레이터를 실행합니다.
    ```bash
-   kubectl apply -f config/deploy/operator.yaml
+   make run
    ```
 
 ## 사용법
