@@ -142,11 +142,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controller.InstanceReconciler{
+	if err = (&controller.InstanceStackReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Instance")
+		setupLog.Error(err, "unable to create controller", "controller", "InstanceStack")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

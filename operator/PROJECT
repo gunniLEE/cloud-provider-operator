@@ -14,7 +14,7 @@ resources:
   controller: true
   domain: cloudprovider.io
   group: infrastructure
-  kind: Instance
+  kind: InstanceStack
   path: github.com/gunniLee/cloud-provider-operator/api/v1alpha1
   version: v1alpha1
 version: "3"
