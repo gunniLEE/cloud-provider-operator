@@ -131,6 +131,7 @@ func (r *InstanceStackReconciler) deleteOpenStackResource(ctx context.Context, i
 
 func pulumiProgram(instanceStack *infrastructurev1alpha1.InstanceStack) pulumi.RunFunc {
 	return func(ctx *pulumi.Context) error {
+		// OpenStack 인스턴스 생성
 		newInstance, err := compute.NewInstance(ctx, instanceStack.Name, &compute.InstanceArgs{
 			FlavorName: pulumi.String(instanceStack.Spec.FlavorName),
 			ImageName:  pulumi.String(instanceStack.Spec.ImageName),
@@ -144,6 +145,7 @@ func pulumiProgram(instanceStack *infrastructurev1alpha1.InstanceStack) pulumi.R
 			return err
 		}
 
+		// 생성된 인스턴스의 IP를 Export
 		ctx.Export("instanceIP", newInstance.AccessIpV4)
 		return nil
 	}
