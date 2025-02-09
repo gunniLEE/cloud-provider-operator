@@ -12,20 +12,20 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.16.4
-  name: instances.infrastructure.cloudprovider.io
+  name: instancestacks.infrastructure.cloudprovider.io
 spec:
   group: infrastructure.cloudprovider.io
   names:
-    kind: Instance
-    listKind: InstanceList
-    plural: instances
-    singular: instance
+    kind: InstanceStack
+    listKind: InstanceStackList
+    plural: instancestacks
+    singular: instancestack
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Instance is the Schema for the instances API.
+        description: InstanceStack is the Schema for the instancestacks API
         properties:
           apiVersion:
             description: |-
@@ -45,11 +45,9 @@ spec:
           metadata:
             type: object
           spec:
-            description: InstanceSpec defines the desired state of Instance.
+            description: InstanceStackSpec defines the desired state of InstanceStack
             properties:
               flavorName:
-                description: Foo is an example field of Instance. Edit instance_types.go
-                  to remove/update
                 type: string
               imageName:
                 type: string
@@ -57,7 +55,7 @@ spec:
                 type: string
             type: object
           status:
-            description: InstanceStatus defines the observed state of Instance.
+            description: InstanceStackStatus defines the observed state of InstanceStack
             type: object
         type: object
     served: true
@@ -173,7 +171,7 @@ rules:
 - apiGroups:
   - infrastructure.cloudprovider.io
   resources:
-  - instances
+  - instancestacks
   verbs:
   - create
   - delete
@@ -185,13 +183,13 @@ rules:
 - apiGroups:
   - infrastructure.cloudprovider.io
   resources:
-  - instances/finalizers
+  - instancestacks/finalizers
   verbs:
   - update
 - apiGroups:
   - infrastructure.cloudprovider.io
   resources:
-  - instances/status
+  - instancestacks/status
   verbs:
   - get
   - patch
@@ -272,6 +270,16 @@ subjects:
   namespace: operator-system
 ---
 apiVersion: v1
+data:
+  password: Y2xvdWQxMjM0
+  username: YWRtaW4=
+kind: Secret
+metadata:
+  name: operator-openstack-secret
+  namespace: operator-system
+type: Opaque
+---
+apiVersion: v1
 kind: Service
 metadata:
   labels:
@@ -317,6 +325,25 @@ spec:
         - --health-probe-bind-address=:8081
         command:
         - /manager
+        env:
+        - name: OPENSTACK_AUTH_URL
+          value: https://172.168.30.10:15000/v3
+        - name: OPENSTACK_USERNAME
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: operator-openstack-secret
+        - name: OPENSTACK_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: operator-openstack-secret
+        - name: OPENSTACK_TENANT_NAME
+          value: admin
+        - name: OPENSTACK_REGION
+          value: RegionOne
+        - name: OPENSTACK_INSECURE
+          value: "true"
         image: controller:latest
         livenessProbe:
           httpGet:

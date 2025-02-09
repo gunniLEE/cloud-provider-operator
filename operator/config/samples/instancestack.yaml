@@ -1,5 +1,5 @@
 apiVersion: infrastructure.cloudprovider.io/v1alpha1
-kind: Instance
+kind: InstanceStack
 metadata:
   labels:
     app.kubernetes.io/name: operator

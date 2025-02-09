@@ -7,7 +7,6 @@ rules:
 - apiGroups:
   - infrastructure.cloudprovider.io
   resources:
-  - instances
   - instancestacks
   verbs:
   - create
@@ -20,14 +19,12 @@ rules:
 - apiGroups:
   - infrastructure.cloudprovider.io
   resources:
-  - instances/finalizers
   - instancestacks/finalizers
   verbs:
   - update
 - apiGroups:
   - infrastructure.cloudprovider.io
   resources:
-  - instances/status
   - instancestacks/status
   verbs:
   - get
