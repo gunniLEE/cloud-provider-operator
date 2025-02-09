@@ -272,6 +272,16 @@ subjects:
   namespace: operator-system
 ---
 apiVersion: v1
+data:
+  password: Y2xvdWQxMjM0
+  username: YWRtaW4=
+kind: Secret
+metadata:
+  name: operator-openstack-secret
+  namespace: operator-system
+type: Opaque
+---
+apiVersion: v1
 kind: Service
 metadata:
   labels:
@@ -317,6 +327,25 @@ spec:
         - --health-probe-bind-address=:8081
         command:
         - /manager
+        env:
+        - name: OPENSTACK_AUTH_URL
+          value: https://172.168.30.10:15000/v3
+        - name: OPENSTACK_USERNAME
+          valueFrom:
+            secretKeyRef:
+              key: username
+              name: operator-openstack-secret
+        - name: OPENSTACK_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: operator-openstack-secret
+        - name: OPENSTACK_TENANT_NAME
+          value: admin
+        - name: OPENSTACK_REGION
+          value: RegionOne
+        - name: OPENSTACK_INSECURE
+          value: "true"
         image: controller:latest
         livenessProbe:
           httpGet:
