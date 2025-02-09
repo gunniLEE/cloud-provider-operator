@@ -89,12 +89,24 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	// OpenStack 인증 정보 Pulumi Config에 저장
-	stack.SetConfig(ctx, "openstack:authUrl", auto.ConfigValue{Value: "https://172.168.30.10:15000/v3"})
-	stack.SetConfig(ctx, "openstack:userName", auto.ConfigValue{Value: "admin"})
-	stack.SetConfig(ctx, "openstack:password", auto.ConfigValue{Value: "cloud1234", Secret: true})
-	stack.SetConfig(ctx, "openstack:tenantName", auto.ConfigValue{Value: "admin"})
-	stack.SetConfig(ctx, "openstack:region", auto.ConfigValue{Value: "RegionOne"})
-	stack.SetConfig(ctx, "openstack:insecure", auto.ConfigValue{Value: "true"})
+	authURL := os.Getenv("OPENSTACK_AUTH_URL")
+	userName := os.Getenv("OPENSTACK_USERNAME")
+	password := os.Getenv("OPENSTACK_PASSWORD")
+	tenantName := os.Getenv("OPENSTACK_TENANT_NAME")
+	region := os.Getenv("OPENSTACK_REGION")
+	insecure := os.Getenv("OPENSTACK_INSECURE")
+
+	if authURL == "" || userName == "" || password == "" || tenantName == "" || region == "" || insecure == "" {
+		log.Error(nil, "Required environment variables are not set")
+		return ctrl.Result{}, fmt.Errorf("missing required environment variables")
+	}
+
+	stack.SetConfig(ctx, "openstack:authUrl", auto.ConfigValue{Value: authURL})
+	stack.SetConfig(ctx, "openstack:userName", auto.ConfigValue{Value: userName})
+	stack.SetConfig(ctx, "openstack:password", auto.ConfigValue{Value: password, Secret: true})
+	stack.SetConfig(ctx, "openstack:tenantName", auto.ConfigValue{Value: tenantName})
+	stack.SetConfig(ctx, "openstack:region", auto.ConfigValue{Value: region})
+	stack.SetConfig(ctx, "openstack:insecure", auto.ConfigValue{Value: insecure})
 
 	// Pulumi 스택 실행 (Apply)
 	upRes, err := stack.Up(ctx)

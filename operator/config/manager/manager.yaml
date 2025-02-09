@@ -65,6 +65,25 @@ spec:
           - --health-probe-bind-address=:8081
         image: controller:latest
         name: manager
+        env: 
+        - name: OPENSTACK_AUTH_URL
+          value: "https://172.168.30.10:15000/v3"
+        - name: OPENSTACK_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: openstack-secret
+              key: username
+        - name: OPENSTACK_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: openstack-secret
+              key: password
+        - name: OPENSTACK_TENANT_NAME
+          value: "admin"
+        - name: OPENSTACK_REGION
+          value: "RegionOne"
+        - name: OPENSTACK_INSECURE
+          value: "true"
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -93,3 +112,12 @@ spec:
             memory: 64Mi
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: openstack-secret
+type: Opaque
+data:
+  username: YWRtaW4=
+  password: Y2xvdWQxMjM0
